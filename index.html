@@ -108,15 +108,12 @@
 
     let paymentData;
 
-    // localStorage থেকে ডেটা লোড করার চেষ্টা করুন
+    // localStorage থেকে ডেটা লোড
     const storedPayments = localStorage.getItem("payments");
     if (storedPayments) {
       paymentData = JSON.parse(storedPayments);
     } else {
       paymentData = defaultPayments.slice();
-      while(paymentData.length < 6){
-          paymentData.push(defaultPayments[paymentData.length % defaultPayments.length]);
-      }
       localStorage.setItem("payments", JSON.stringify(paymentData));
     }
 
@@ -135,7 +132,8 @@
           const newValue = parseInt(input.value) || 500;
           paymentData[index].amount = newValue;
           localStorage.setItem("payments", JSON.stringify(paymentData));
-          loadPaymentHistory(paymentData);
+          input.replaceWith(element);
+          element.innerText = newValue;
         }
         input.addEventListener("blur", save);
         input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
@@ -157,52 +155,58 @@
           const newValue = input.value.trim();
           paymentData[index].date = newValue;
           localStorage.setItem("payments", JSON.stringify(paymentData));
-          loadPaymentHistory(paymentData);
+          input.replaceWith(element);
+          element.innerText = newValue;
         }
         input.addEventListener("blur", save);
         input.addEventListener("keydown", (e) => { if (e.key === "Enter") input.blur(); });
       });
     }
 
+    function renderPaymentCard(payment, index) {
+      const paymentItem = document.createElement('div');
+      paymentItem.classList.add('payment-item');
+
+      const dateSpan = document.createElement("span");
+      dateSpan.innerText = payment.date;
+      dateSpan.classList.add("editable", "payment-date");
+      makeEditableDate(dateSpan, index);
+
+      const amountSpan = document.createElement("span");
+      amountSpan.innerText = payment.amount;
+      amountSpan.classList.add("payment-amount");
+      makeEditableAmount(amountSpan, index);
+
+      const currencySpan = document.createElement("span");
+      currencySpan.innerText = payment.currency;
+      currencySpan.classList.add("currency");
+
+      const statusDiv = document.createElement("div");
+      statusDiv.innerText = payment.status;
+      statusDiv.classList.add("payment-status");
+
+      const rowDiv = document.createElement("div");
+      rowDiv.classList.add("payment-row");
+      rowDiv.appendChild(dateSpan);
+
+      const amountBox = document.createElement("div");
+      amountBox.appendChild(amountSpan);
+      amountBox.appendChild(document.createTextNode(" "));
+      amountBox.appendChild(currencySpan);
+      rowDiv.appendChild(amountBox);
+
+      paymentItem.appendChild(rowDiv);
+      paymentItem.appendChild(statusDiv);
+
+      return paymentItem;
+    }
+
     function loadPaymentHistory(data) {
       const paymentListDiv = document.getElementById('payment-history-list');
       paymentListDiv.innerHTML = '';
       data.forEach((payment, index) => {
-        const paymentItem = document.createElement('div');
-        paymentItem.classList.add('payment-item');
-
-        const dateSpan = document.createElement("span");
-        dateSpan.innerText = payment.date;
-        dateSpan.classList.add("editable", "payment-date");
-        makeEditableDate(dateSpan, index);
-
-        const amountSpan = document.createElement("span");
-        amountSpan.innerText = payment.amount;
-        amountSpan.classList.add("payment-amount");
-        makeEditableAmount(amountSpan, index);
-
-        const currencySpan = document.createElement("span");
-        currencySpan.innerText = payment.currency;
-        currencySpan.classList.add("currency");
-
-        const statusDiv = document.createElement("div");
-        statusDiv.innerText = payment.status;
-        statusDiv.classList.add("payment-status");
-
-        const rowDiv = document.createElement("div");
-        rowDiv.classList.add("payment-row");
-        rowDiv.appendChild(dateSpan);
-
-        const amountBox = document.createElement("div");
-        amountBox.appendChild(amountSpan);
-        amountBox.appendChild(document.createTextNode(" "));
-        amountBox.appendChild(currencySpan);
-        rowDiv.appendChild(amountBox);
-
-        paymentItem.appendChild(rowDiv);
-        paymentItem.appendChild(statusDiv);
-
-        paymentListDiv.appendChild(paymentItem);
+        const card = renderPaymentCard(payment, index);
+        paymentListDiv.appendChild(card);
       });
     }
 
@@ -214,19 +218,19 @@
       const year = today.getFullYear();
       const weekdayNames = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
       const weekday = weekdayNames[today.getDay()];
-      
-      // ✅ এখানে backtick ব্যবহার করা হলো
       const formattedDate = `${day} ${month} ${year} (${weekday})`;
 
       const newPayment = { date: formattedDate, amount: 500, currency: "Tk", status: "Payment Successful" };
       paymentData.push(newPayment);
       localStorage.setItem("payments", JSON.stringify(paymentData));
-      loadPaymentHistory(paymentData);
 
+      // শুধু নতুন কার্ড অ্যাড হবে
       const paymentListDiv = document.getElementById('payment-history-list');
-      if (paymentListDiv.lastElementChild) {
-        paymentListDiv.lastElementChild.scrollIntoView({ behavior: 'smooth', block: 'end' });
-      }
+      const newCard = renderPaymentCard(newPayment, paymentData.length - 1);
+      paymentListDiv.appendChild(newCard);
+
+      // স্ক্রল করে নতুন কার্ড দেখানো
+      newCard.scrollIntoView({ behavior: 'smooth', block: 'end' });
     }
 
     document.addEventListener('DOMContentLoaded', () => {
